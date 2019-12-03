@@ -1,0 +1,4 @@
+type: generator
+name: Dummy
+description: Dummy generator
+config:

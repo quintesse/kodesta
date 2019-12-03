@@ -1,0 +1,6 @@
+type: capability
+name: Dummy
+description: Dummy capability
+metadata:
+  category: dummy
+props:
