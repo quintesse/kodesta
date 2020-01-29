@@ -7,14 +7,14 @@ import org.junit.jupiter.api.Test
 class DeploymentDescriptorTest {
 
     @Test
-    fun `apply capabilities`() {
+    fun `apply generators`() {
         val deployment = DeploymentDescriptor.build {
             applications = mutableListOf(ApplicationDescriptor.build {
                 application = "dummy-app"
                 parts = mutableListOf(PartDescriptor.build {
-                    capabilities = mutableListOf(
-                        CapabilityDescriptor.build {
-                            module = "dummy"
+                    generators = mutableListOf(
+                        GeneratorDescriptor.build {
+                            module = "capability-dummy"
                         }
                     )
                 })

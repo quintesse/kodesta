@@ -17,6 +17,6 @@ fun getRuntimeOverrides(): List<String>? {
     return System.getProperty("launcher.it.runtimes")?.split(',')
 }
 
-fun getCapabilityOverrides(): List<String>? {
-    return System.getProperty("launcher.it.capabilities")?.split(',')?.map { "capability-$it" }
+fun getGeneratorOverrides(): List<String>? {
+    return System.getProperty("launcher.it.generators")?.split(',')
 }

@@ -13,16 +13,16 @@ import org.codejive.kodesta.core.propsOf
 import org.codejive.kodesta.core.toRuntime
 import java.nio.file.Paths
 
-class Apply : CliktCommand(help = "Adds capabilities to projects") {
+class Apply : CliktCommand(help = "Adds generators to projects") {
     val project: String by option(help = "Project folder").default(".")
     val name: String by option(help = "The name of the application").required()
-    val folder: String? by option(help = "Optional subfolder to use for the capability")
+    val folder: String? by option(help = "Optional subfolder to use for the generator")
     val runtime: String? by option(help = "The runtime or runtime/version to use for the application")
-    val capabilities: List<String> by argument(help = "The names of the capabilities to apply. Each name can optionally be followed by a JSON object or flags").multiple(true)
+    val generators: List<String> by argument(help = "The names of the generators to apply. Each name can optionally be followed by a JSON object or flags").multiple(true)
 
     override fun run() {
         var currcap: String = ""
-        val caps = capabilities.groupBy {
+        val caps = generators.groupBy {
             if (it.startsWith("--")) {
                 currcap
             } else {
@@ -39,8 +39,8 @@ class Apply : CliktCommand(help = "Adds capabilities to projects") {
                     shared = propsOf(
                             "runtime" to toRuntime(runtime)
                     )
-                    capabilities = caps.map {
-                        CapabilityDescriptor.build {
+                    generators = caps.map {
+                        GeneratorDescriptor.build {
                             module = it.key
                             if (it.value.size > 1) {
                                 props = flagsToProps(it.value.drop(1))
@@ -52,7 +52,7 @@ class Apply : CliktCommand(help = "Adds capabilities to projects") {
         }
 
         applyDeployment(Paths.get(project), deployment, GeneratorRegistry.defaultRegistry)
-        echo("Applied capability to '${project}'")
+        echo("Applied generator to '${project}'")
         echo("Go into that folder and type './gap deploy' while logged into OpenShift to create the application")
         echo("in the currently active project. Afterwards type './gap push' at any time to push the current")
         echo("application code to the project.")

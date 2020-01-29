@@ -44,52 +44,52 @@ fun applyApplication(targetDir: Path, application: ApplicationDescriptor, regist
     application.parts.forEach { applyPart(targetDir, application.application, it, registry) }
 }
 
-// Creates the code for a part by calling `applyCapability()` on all the
-// capabilities in the given part descriptor
+// Creates the code for a part by calling `applyGenerator()` on all the
+// generators in the given part descriptor
 private fun applyPart(targetDir: Path, appName: String, part: PartDescriptor, registry: GeneratorRegistry = GeneratorRegistry.defaultRegistry) {
     val genTargetDir = if (part.subFolderName == null) targetDir else targetDir.resolve(part.subFolderName)
     val res = readResources(resourcesFileName(genTargetDir))
-    part.capabilities.forEach { applyCapability(res, targetDir, appName, part.subFolderName, part.shared, it, registry) }
+    part.generators.forEach { applyGenerator(res, targetDir, appName, part.subFolderName, part.shared, it, registry) }
 }
 
-// Calls `apply()` on the given capability (which allows it to copy, generate
+// Calls `apply()` on the given generator (which allows it to copy, generate
 // and change files in the user's project) and adds information about the
-// capability to the `deployment.json` in the project's root.
-private fun applyCapability(
+// generator to the `deployment.json` in the project's root.
+private fun applyGenerator(
     res: Resources,
     targetDir: Path,
     appName: String,
     subFolderName: String?,
     shared: Properties?,
-    capability: CapabilityDescriptor,
+    generator: GeneratorDescriptor,
     registry: GeneratorRegistry = GeneratorRegistry.defaultRegistry
 ): DeploymentDescriptor {
-    val module = capability.module
-    val props = propsOf(capability.props, "module" to module, "application" to appName)
+    val module = generator.module
+    val props = propsOf(generator.props, "module" to module, "application" to appName)
     if (subFolderName != null) {
         props["subFolderName"] = subFolderName
     }
 
     // Validate the properties that we get passed are valid
-    val capTargetDir = if (subFolderName == null) targetDir else targetDir.resolve(subFolderName)
-    val capInfo = registry.capability(module)
-    val propDefs = capInfo.infoDef.props
+    val genTargetDir = if (subFolderName == null) targetDir else targetDir.resolve(subFolderName)
+    val genInfo = registry.byName(module)
+    val propDefs = genInfo.infoDef.props
     val allprops = propsOf(props, definedPropsOnly(propDefs, shared))
     validate(propDefs, registry.enums, allprops)
 
-    // Read the deployment descriptor and validate if we can safely add this capability
-    val rf = resourcesFileName(capTargetDir)
+    // Read the deployment descriptor and validate if we can safely add this generator
+    val rf = resourcesFileName(genTargetDir)
     val df = deploymentFileName(targetDir)
     val deployment = readDeployment(df)
-    validateAddCapability(deployment, allprops)
+    validateAddGenerator(deployment, allprops)
 
-    // Apply the capability
-    val cap = capInfo.klazz(capInfo, GeneratorContext(capTargetDir, registry))
-    val extra = propsOf("category" to capInfo.infoDef.metadata?.category)
+    // Apply the generator
+    val cap = genInfo.klazz(genInfo, GeneratorContext(genTargetDir, registry))
+    val extra = propsOf("category" to genInfo.infoDef.metadata?.category)
     val res2 = cap.apply(res, allprops, extra)
 
-    // Add the capability's state to the deployment descriptor
-    addCapability(deployment, createCapState(propDefs, allprops, extra))
+    // Add the generator's state to the deployment descriptor
+    addGenerator(deployment, createCapState(propDefs, allprops, extra))
 
     // Execute any post-apply generators
     val res3 = postApply(res2, targetDir, deployment, registry)
@@ -109,8 +109,8 @@ fun getPropDef(propDefs: List<PropertyDef>, propId: String): PropertyDef? {
     return propDefs.find { pd -> pd.id == propId }
 }
 
-// Validates that the given capability can be added to the given deployment
-fun validateAddCapability(deployment: DeploymentDescriptor, props: Properties) {
+// Validates that the given generator can be added to the given deployment
+fun validateAddGenerator(deployment: DeploymentDescriptor, props: Properties) {
     val app = deployment.applications.find { item -> item.application == props["application"] }
     if (app != null) {
         val part = app.parts.find { t -> t.subFolderName == props["subFolderName"] }
@@ -119,57 +119,57 @@ fun validateAddCapability(deployment: DeploymentDescriptor, props: Properties) {
             val rtcap = props.pathGet<String>("runtime.name")
             if (rtapp != null && rtcap != null && rtapp != rtcap) {
                 throw Exception(
-                        "Trying to add capability with incompatible 'runtime' (is '$rtcap', should be '$rtapp')")
+                        "Trying to add generator with incompatible 'runtime' (is '$rtcap', should be '$rtapp')")
             }
         }
         if (app.parts[0].subFolderName == null && props["subFolderName"] != null || app.parts[0].subFolderName != null && props["subFolderName"] == null) {
-            throw Exception("Can't mix capabilities in the root folder and in sub folders")
+            throw Exception("Can't mix generators in the root folder and in sub folders")
         }
     }
 }
 
-// Adds the given capability to the given deployment
-fun addCapability(deployment: DeploymentDescriptor, capState: Properties) {
-    val capProps = propsOf(capState)
+// Adds the given generator to the given deployment
+fun addGenerator(deployment: DeploymentDescriptor, genState: Properties) {
+    val capProps = propsOf(genState)
     capProps.remove("application")
     capProps.remove("subFolderName")
     capProps.remove("shared")
     capProps.remove("sharedExtra")
-    val cap = CapabilityDescriptor.build(capProps)
-    var app = deployment.applications.find { item -> item.application == capState["application"] }
+    val cap = GeneratorDescriptor.build(capProps)
+    var app = deployment.applications.find { item -> item.application == genState["application"] }
     if (app == null) {
         app = ApplicationDescriptor.build {
-            application = capState["application"] as String
+            application = genState["application"] as String
         }
         deployment.applications.add(app)
     }
-    var part = app.parts.find { p -> p.subFolderName == capState["subFolderName"] }
+    var part = app.parts.find { p -> p.subFolderName == genState["subFolderName"] }
     if (part == null) {
         part = PartDescriptor.build {
             shared = propsOf()
             extra = propsOf()
-            capState["subFolderName"]?.let {
+            genState["subFolderName"]?.let {
                 subFolderName = it as String
             }
         }
         app.parts.add(part)
     }
-    part.capabilities.add(cap)
-    val shared = capState["shared"]
+    part.generators.add(cap)
+    val shared = genState["shared"]
     if (shared != null) {
         part.shared?.putAll(shared as Properties)
     }
-    val sharedExtra = capState["sharedExtra"]
+    val sharedExtra = genState["sharedExtra"]
     if (sharedExtra != null) {
         part.extra?.putAll(sharedExtra as Properties)
     }
-    val overall = overallCategory(part.capabilities)
+    val overall = overallCategory(part.generators)
     part.extra?.putAll(overall)
 }
 
-fun overallCategory(capabilities: List<CapabilityDescriptor>): Properties {
-    return if (capabilities.isNotEmpty()) {
-        var categories = capabilities.mapNotNull { c -> c.extra?.get("category") as String? }.distinct()
+fun overallCategory(generators: List<GeneratorDescriptor>): Properties {
+    return if (generators.isNotEmpty()) {
+        var categories = generators.mapNotNull { c -> c.extra?.get("category") as String? }.distinct()
         if (categories.size > 1) {
             // This is a bit of a hack, we're purposely removing "support"
             // because we know we're not really interested in that one
@@ -204,21 +204,21 @@ fun createCapState(propDefs: List<PropertyDef>, props: Properties, extra: Proper
 fun postApply(res: Resources, targetDir: Path, deployment: DeploymentDescriptor, registry: GeneratorRegistry = GeneratorRegistry.defaultRegistry): Resources {
     val app = deployment.applications[0]
     for (part in app.parts) {
-        for (cap in part.capabilities) {
+        for (gen in part.generators) {
             try {
-                val capInfo = registry.capability(cap.module)
-                val capTargetDir = if (part.subFolderName == null) targetDir else targetDir.resolve(part.subFolderName)
-                val capinst = capInfo.klazz(capInfo, GeneratorContext(capTargetDir, registry))
+                val genInfo = registry.byName(gen.module)
+                val genTargetDir = if (part.subFolderName == null) targetDir else targetDir.resolve(part.subFolderName)
+                val genInst = genInfo.klazz(genInfo, GeneratorContext(genTargetDir, registry))
                 val props = propsOf(
                         part.shared,
-                        cap.props,
-                        "module" to cap.module,
+                        gen.props,
+                        "module" to gen.module,
                         "application" to app.application,
                         "subFolderName" to part.subFolderName
                 )
-                capinst.postApply(res, props, deployment)
+                genInst.postApply(res, props, deployment)
             } catch (ex: Exception) {
-                println("Capability ${cap.module} wasn't found for post-apply, skipping.")
+                println("Generator ${gen.module} wasn't found for post-apply, skipping.")
             }
         }
     }

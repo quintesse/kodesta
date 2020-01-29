@@ -1,4 +1,3 @@
-type: capability
 name: Dummy
 description: Dummy capability
 metadata:

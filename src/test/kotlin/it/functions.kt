@@ -28,9 +28,9 @@ fun getRuntimeVersions(tier: String): List<Runtime> {
     }
 }
 
-fun getCapabilities(tier: String): List<ModuleInfoDef> {
-    val cOverrides = getCapabilityOverrides()
-    val cis = GeneratorRegistry.defaultRegistry.capabilities()
+fun getGenerators(tier: String): List<ModuleInfoDef> {
+    val cOverrides = getGeneratorOverrides()
+    val cis = GeneratorRegistry.defaultRegistry.generators
     return cis
         .map { ci -> ci.infoDef }
         .filter { inf -> inf.pathGet("metadata.category", "") == tier }

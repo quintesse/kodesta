@@ -10,9 +10,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.streams.toList
 
-// Put any capabilities here that need special options for testing.
+// Put any generators here that need special options for testing.
 // Each set of options in the array will be used in a separate test run
-val capabilityOptions: CapabilityOptions = mapOf(
+val generatorOptions: GeneratorOptions = mapOf(
     "capability-database" to listOf(
         propsOf("databaseType" to "postgresql"),
         propsOf("databaseType" to "mysql")
@@ -44,13 +44,13 @@ class AllIntegrationTestsIT: IntegrationTests {
                 yield(
                     DynamicContainer.dynamicContainer(
                         "Backends",
-                        testRuntimesCaps(getRuntimeVersions("backend"), getCapabilities("backend"))
+                        testRuntimesCaps(getRuntimeVersions("backend"), getGenerators("backend"))
                     )
                 )
                 yield(
                     DynamicContainer.dynamicContainer(
                         "Frontends",
-                        testRuntimesCaps(getRuntimeVersions("frontend"), getCapabilities("frontend"))
+                        testRuntimesCaps(getRuntimeVersions("frontend"), getGenerators("frontend"))
                     )
                 )
                 yield(DynamicTest.dynamicTest("cleanup") {
@@ -83,21 +83,21 @@ fun listParts(runtime: Runtime, capInfos: List<ModuleInfoDef>): List<Part> {
     val parts = mutableListOf<Part>()
     val rtCaps = capInfos.filter { d -> findPropertyWithValue(d, "runtime.name", runtime.name, GeneratorRegistry.defaultRegistry.enums) != null }
     val caps = rtCaps.map { c -> c.module }
-    val cOverrides = getCapabilityOverrides()
+    val cOverrides = getGeneratorOverrides()
 
-    fun actualCaps(idx: Int): List<CapabilityOpts> {
+    fun actualCaps(idx: Int): List<GeneratorOpts> {
         return caps.map { c ->
-            val co = capabilityOptions[c]
+            val co = generatorOptions[c]
             if (co != null) {
-                CapabilityOpts(c, co[idx % co.size])
+                GeneratorOpts(c, co[idx % co.size])
             } else {
-                CapabilityOpts(c)
+                GeneratorOpts(c)
             }
         }
     }
 
     if (rtCaps.isNotEmpty()) {
-        val maxAlt = capabilityOptions
+        val maxAlt = generatorOptions
             .entries
             .filter { e -> caps.contains(e.key) }
             .fold(1) { acc, e -> Math.max(acc, e.value.size) }
@@ -105,19 +105,19 @@ fun listParts(runtime: Runtime, capInfos: List<ModuleInfoDef>): List<Part> {
             if (cOverrides == null || cOverrides.contains("capability-welcome")) {
                 parts.add(Part.build {
                     this.runtime = runtime
-                    capabilities = actualCaps(i) + CapabilityOpts("capability-welcome")
+                    generators = actualCaps(i) + GeneratorOpts("capability-welcome")
                 })
             } else {
                 parts.add(Part.build {
                     this.runtime = runtime
-                    capabilities = actualCaps(i)
+                    generators = actualCaps(i)
                 })
             }
         }
         parts.add(Part.build {
             this.runtime = runtime
             folder = "test"
-            capabilities = actualCaps(0)
+            generators = actualCaps(0)
         })
     }
     return parts
@@ -145,8 +145,8 @@ private fun deployment(part: Part): DeploymentDescriptor {
                         shared = propsOf(
                             "runtime" to part.runtime
                         )
-                        capabilities = part.capabilities.map {
-                            CapabilityDescriptor.build {
+                        generators = part.generators.map {
+                            GeneratorDescriptor.build {
                                 module = it.name
                                 props = propsOf(it.opts)
                             }
@@ -179,8 +179,8 @@ fun testPart(part: Part): Iterable<DynamicNode> {
         val context = Context()
 
         val folderMsg = if (part.folder != null) " in folder " + part.folder else ""
-        val capNames = part.capabilities.joinToString { it.name }
-        val name = "Capabilities $capNames$folderMsg"
+        val capNames = part.generators.joinToString { it.name }
+        val name = "Generators $capNames$folderMsg"
         yield(DynamicContainer.dynamicContainer(name, sequence {
             var setupOk = true
             yield(DynamicContainer.dynamicContainer("setup", sequence {
@@ -228,8 +228,8 @@ fun testPart(part: Part): Iterable<DynamicNode> {
                 })
             }.asIterable()))
 
-            if (setupOk) yield(DynamicContainer.dynamicContainer("Testing capabilities...", sequence {
-                yieldAll(part.capabilities.flatMap { testRuntimeCap(it, context) })
+            if (setupOk) yield(DynamicContainer.dynamicContainer("Testing generators...", sequence {
+                yieldAll(part.generators.flatMap { testRuntimeCap(it, context) })
             }.asIterable()))
 
             yield(DynamicTest.dynamicTest("cleanup") {
@@ -239,8 +239,8 @@ fun testPart(part: Part): Iterable<DynamicNode> {
     }.asIterable()
 }
 
-fun testRuntimeCap(capability: CapabilityOpts, context: Context): Iterable<DynamicNode> {
-    val capTest = CapabilityTestRegistry.defaultRegistry.tests.find { it.name == capability.name }
+fun testRuntimeCap(generator: GeneratorOpts, context: Context): Iterable<DynamicNode> {
+    val capTest = GeneratorTestRegistry.defaultRegistry.tests.find { it.name == generator.name }
     return if (capTest != null) {
         RestAssured.baseURI = "http://${context.routeHost}"
         val tests = capTest.testsProvider(context).integrationTests()

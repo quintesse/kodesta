@@ -25,7 +25,7 @@ dependencies {
     implementation("com.github.ajalt:clikt:2.1.0")
     implementation("com.beust:klaxon:5.0.13")
     implementation("org.yaml:snakeyaml:1.25")
-    implementation("io.fabric8:maven-model-helper:13")
+    implementation("io.fabric8:maven-model-helper:14")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.5.2")
     testImplementation("org.assertj:assertj-core:3.13.2")

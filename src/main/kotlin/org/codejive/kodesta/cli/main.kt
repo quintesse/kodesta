@@ -16,7 +16,7 @@ fun main(args: Array<String>) = Creator()
         Generate(),
         Analyze(),
         CreatorList().subcommands(
-            ListCapabilities(),
+            ListGenerators(),
             ListRuntimes()
         )
     )

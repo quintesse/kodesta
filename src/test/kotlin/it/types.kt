@@ -10,14 +10,14 @@ interface IntegrationTests {
     fun integrationTests(): Iterable<DynamicNode>
 }
 
-typealias CapabilityOptions = Map<String, List<Properties>>
+typealias GeneratorOptions = Map<String, List<Properties>>
 
-data class CapabilityOpts(val name: String, val opts: Properties = propsOf())
+data class GeneratorOpts(val name: String, val opts: Properties = propsOf())
 
 interface Part : BaseProperties {
     val runtime: Runtime?
     val folder: String?
-    val capabilities: List<CapabilityOpts>
+    val generators: List<GeneratorOpts>
 
     companion object {
         @JvmOverloads fun build(_map: Properties = propsOf(), block: Data.() -> Unit = {}) =
@@ -28,7 +28,7 @@ interface Part : BaseProperties {
         Part {
         override var runtime: Runtime? by _map
         override var folder: String? by _map
-        override var capabilities: List<CapabilityOpts> by _map
+        override var generators: List<GeneratorOpts> by _map
     }
 }
 
