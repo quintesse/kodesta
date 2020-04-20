@@ -166,7 +166,6 @@ interface ConfigDef : BaseProperties {
 interface InfoDef : BaseProperties, PropertiesDef {
     val name: String
     val description: String?
-    val type: String?
     val metadata: MetadataDef?
     val config: ConfigDef?
 
@@ -178,7 +177,6 @@ interface InfoDef : BaseProperties, PropertiesDef {
     open class Data(map: Properties = propsOf()) : BaseProperties.Data(map), InfoDef {
         override var name: String by _map
         override var description: String? by _map
-        override var type: String? by _map
         override var metadata: MetadataDef? by _map
         fun metadata_(block: MetadataDef.Data.() -> Unit) {
             metadata = MetadataDef.build(block = block)

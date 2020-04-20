@@ -37,14 +37,6 @@ class GeneratorRegistry() {
             propsOf() as Enums
         }
     }
-
-    companion object {
-        @JvmStatic
-        val defaultRegistry : GeneratorRegistry by lazy {
-            // TODO Make this non-hardcoded
-            GeneratorRegistry()
-        }
-    }
 }
 
 data class GeneratorInfo internal constructor (val name: String, val klazz: GeneratorConstructor = ::SimpleConfigGenerator) {

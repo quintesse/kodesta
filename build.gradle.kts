@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("com.github.ajalt:clikt:2.1.0")
+    implementation("com.github.ajalt:clikt:2.4.0")
     implementation("com.beust:klaxon:5.0.13")
     implementation("org.yaml:snakeyaml:1.25")
     implementation("io.fabric8:maven-model-helper:14")

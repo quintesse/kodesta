@@ -14,7 +14,6 @@ class InfoTest {
         assertThat(
             testRegistry
                 .generators
-                .map { it.infoDef }
-                .filter { it.type != null}).isNotEmpty
+                .map { it.infoDef }).isNotEmpty
     }
 }

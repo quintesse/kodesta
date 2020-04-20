@@ -5,7 +5,6 @@ import org.codejive.kodesta.catalog.GeneratorRegistry
 import org.codejive.kodesta.core.*
 import org.codejive.kodesta.core.data.objectFromString
 import org.codejive.kodesta.core.data.yamlIo
-import org.codejive.kodesta.core.deploy.DeploymentDescriptor
 import org.codejive.kodesta.core.maven.maven
 import org.codejive.kodesta.core.nodejs.mergePackageJson as mergePackage
 import org.codejive.kodesta.core.resource.Resources
@@ -25,10 +24,6 @@ val PATH_NONE: Path = Paths.get("")
 
 interface Generator {
     fun apply(resources: Resources, props: Properties, extra: Properties): Resources
-
-    fun postApply(resources: Resources, props: Properties, deployment: DeploymentDescriptor): Resources {
-        return resources
-    }
 }
 
 class GeneratorContext(val targetDir: Path, val registry: GeneratorRegistry)
